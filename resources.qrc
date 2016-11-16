@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/layer2kmz" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
