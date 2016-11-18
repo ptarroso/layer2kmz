@@ -333,12 +333,12 @@ class kmlprocess():
                 symb = cat.symbol()
                 imgname = "color_%s.png" % name
                 createSymbol(os.path.join(self.tmpDir, imgname), symb)
-                styles.append([name, imgname])
+                styles.append([name, {"iconfile": imgname}])
         elif rnd.type() == u'singleSymbol':
             symb = rnd.symbol()
             imgname = "color_style.png"
             createSymbol(os.path.join(self.tmpDir, imgname), symb)
-            styles.append(["style", imgname])
+            styles.append(["style", {"iconfile": imgname}])
         else:
             self.error.emit("Symbology must be single or categorized.")
             self.finished.emit(False)
@@ -357,7 +357,8 @@ class kmlprocess():
         Kml.addSchema(self.layer.name(), self.exports, types)
 
         for item in self.styles:
-            Kml.addStyle(item[0], item[1])
+            styId, kwargs = item
+            Kml.addStyle(styId, **kwargs)
 
         style = self.styles[0][0]
         for i in range(len(self.data)):
@@ -368,7 +369,7 @@ class kmlprocess():
                 style = self.featStyles[i]
             fields = {}
             fields[self.layer.name()] = zip(self.exports, self.data[i])
-            Kml.addPoint(folder, name, style, coords, fields)
+            Kml.addPlacemark(folder, name, style, coords, fields)
 
         tmpKml = os.path.join(self.tmpDir, "doc.kml")
         fstream = open(tmpKml, "w")
@@ -377,9 +378,10 @@ class kmlprocess():
 
         z = zipfile.ZipFile(self.outFile, "w")
         z.write(tmpKml, arcname="doc.kml")
-        for filename in [x[1] for x in self.styles]:
-            filename = os.path.join(self.tmpDir, filename)
-            z.write(filename, arcname=os.path.basename(filename))
+        for styDict in [x[1] for x in self.styles]:
+            if "iconfile" in styDict.keys():
+                filename = os.path.join(self.tmpDir, styDict["iconfile"])
+                z.write(filename, arcname=os.path.basename(filename))
         z.close()
 
         self.updateProgress(self.counter)
