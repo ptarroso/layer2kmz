@@ -41,19 +41,82 @@ class kml():
 
         self.schemas.append(schema)
 
-    def addStyle(self, idStyle, iconfile):
+    def addStyle(self, idStyle, **kwargs):
+        ## Add a new style, trying to guess from kwargs if it is
+        ## an icon, line or polygon
+        ## icon - needs "iconfile = str"
+        ## line - needs either "color = HEX" or "width = int"
+        ## polygon - needs either "fill = HEX" or "outline = Bool"
+
         if idStyle in self.listStyles():
             raise Exception("Styles must be unique. " \
                             "Style with ID %s already present." % idStyle)
+        if kwargs.keys() == []:
+            raise Exception("The function need more arguments to create a " \
+                            "style. Available args are 'iconfile' for icon " \
+                            "style, 'color' and 'width' for line style, and " \
+                            "'fill' and 'outline' for poygon style")
 
         style = ET.Element("Style")
         style.set("id", idStyle)
+
+        linetest = ["color", "width"]
+        polytest = ["fill", "outline"]
+
+        if "iconfile" in kwargs.keys():
+            style.append(self._addIconSty(kwargs["iconfile"]))
+        if any(i in kwargs.keys() for i in linetest):
+            try:
+                line = self._addLineSty(kwargs["color"], kwargs["width"])
+            except KeyError, e:
+                e = linetest.pop(linetest.index(e.args[0]))
+                line = self._addLineSty(kwargs[linetest[0]])
+            style.append(line)
+        if any(i in kwargs.keys() for i in polytest):
+            try:
+                poly = self._addPolySty(kwargs["fill"], kwargs["outline"])
+            except KeyError, e:
+                e = polytest.pop(polytest.index(e.args[0]))
+                poly = self._addPolySty(kwargs[polytest[0]])
+            style.append(poly)
+
+        self.styles.append(style)
+
+    def _addIconSty(self, iconfile):
         icon = ET.Element("Icon")
         href = ET.Element("href")
         href.text = iconfile
         icon.append(href)
-        style.append(icon)
-        self.styles.append(style)
+        return(icon)
+
+    def _addLineSty(self, color, width = 1):
+        ## color is hexadecimal string
+        line = ET.Element("LineStyle")
+        colorl = ET.Element("color")
+        colorl.text = color
+        widthl = ET.Element("width")
+        widthl.text = str(width)
+        line.append(colorl)
+        line.append(widthl)
+        return(line)
+
+    def _addPolySty(self, fill = None, outline = False):
+        ## color is hexadecimal string
+        poly = ET.Element("PolyStyle")
+        if fill is not None:
+            colorp = ET.Element("color")
+            colorp.text = fill
+            poly.append(colorp)
+            fillp = ET.Element("fill")
+            fillp.text = "1"
+            poly.append(fillp)
+        outlp = ET.Element("outline")
+        if outline is True:
+            outlp.text = "1"
+        else:
+            outlp.text = "0"
+        poly.append(outlp)
+        return(poly)
 
     def addFolder(self, foldername):
         if foldername in self.listFolders():
@@ -66,13 +129,27 @@ class kml():
         folder.append(name)
         self.folders.append(folder)
 
-    def addPoint(self, folder, name, style, coords, fieldData):
+    def addPlacemark(self, folder, name, style, coords, fieldData):
         # folder - Name of the folder to organise the placemarks
         # name - Name of the placemark to be displayed with symbol
         # style - Style for the placemark (Must be added before)
-        # coords - Tuple with (Longitude,Latitude)
-        # fieldData - a dictionary with schemas filled with tuples
-        #             e.g. {"schema1": [("id", 1), ("altitude", 300)]}
+        # coords - It can be either a tuple specifying a point, a list of
+        #          coordinate tuples specifying a line or a list of lists of
+        #          coordinate tuples, where the first element is the outer
+        #          polygon and subsequent elements define inner polygons (i.e.
+        #          holes). The coordinate tuple for any shape must have two
+        #          elements, a Longitude and a Latitude value in that order. If
+        #          a third element if given in the coordinates tuple it is
+        #          interpreted as altitude.
+        #          Examples
+        #           Point:
+        #            (Lon1,Lat1)
+        #           Line:
+        #            [(lon1,lat1), (lon2, lat2), ...]
+        #           Polygon:
+        #            [[(lon1,lat1, (lon2,lat2), ...], [(lon1, lat1), ...], ...]
+        # fieldData - A dictionary with schemas filled with tuples
+        #             example: {"schema1": [("id", 1), ("altitude", 300)]}
 
         if style not in self.listStyles():
             raise Exception("Style %s must be added before a " \
@@ -112,18 +189,68 @@ class kml():
                 sData.text = fdata[1]
                 schemaUrl.append(sData)
             extData.append(schemaUrl)
-        pnt = ET.Element("Point")
-        crd = ET.Element("coordinates")
-        crd.text = "%s,%s" % coords
-        pnt.append(crd)
+
+        if isinstance(coords, tuple):
+            crd = self._addPoint(coords)
+        elif isinstance(coords, list):
+            if isinstance(coords[0], tuple):
+                crd = self._addLine(coords)
+            elif isinstance(coords[0], list):
+                crd = self._addPolygon(coords)
+        else:
+            raise Exception("'coords' must be a tuple or a list.")
 
         placemark.append(pname)
         placemark.append(styleUrl)
         placemark.append(extData)
-        placemark.append(pnt)
+        placemark.append(crd)
 
         folder.append(placemark)
         self.folders[fInd] = folder
+
+    def _addPoint(self, coordinates):
+        fmt = ",".join(["%s" for x in coordinates])
+        pnt = ET.Element("Point")
+        crd = ET.Element("coordinates")
+        crd.text = fmt % coordinates
+        pnt.append(crd)
+        return(pnt)
+
+    def _addLine(self, coordinates, tessellate = True):
+        fmt = ",".join(["%s" for x in coordinates[0]])
+        line = ET.Element("LineString")
+        tess = ET.Element("tessellate")
+        tess.text = str(int(tessellate))
+        crd = ET.Element("coordinates")
+        crd.text = " ".join([fmt % tuple(x) for x in coordinates])
+        line.append(tess)
+        line.append(crd)
+        return(line)
+
+    def _addPolygon(self, coordinates, tessellate = True):
+        fmt = ",".join(["%s" for x in coordinates[0][0]])
+        poly = ET.Element("Polygon")
+        tess = ET.Element("tessellate")
+        tess.text = str(int(tessellate))
+        poly.append(tess)
+        outBound = ET.Element("outerBoundaryIs")
+        lRing = ET.Element("LinearRing")
+        crd = ET.Element("coordinates")
+        crd.text = " ".join([fmt % tuple(x) for x in coordinates[0]])
+        lRing.append(crd)
+        outBound.append(lRing)
+        poly.append(outBound)
+
+        if len(coordinates) > 1:
+            for iPoly in coordinates[1:]:
+                inBound = ET.Element("innerBoundaryIs")
+                lRing = ET.Element("LinearRing")
+                crd = ET.Element("coordinates")
+                crd.text = " ".join([fmt % tuple(x) for x in iPoly])
+                lRing.append(crd)
+                inBound.append(lRing)
+                poly.append(inBound)
+        return(poly)
 
     def listStyles(self):
         #returns a list of available styles IDs
