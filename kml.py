@@ -1,7 +1,29 @@
+# -*- coding: utf-8 -*-
+"""
+/***************************************************************************
+ layer2kmz
+                                 A QGIS plugin
+ Build a kmz from a layer of spatial points, lines or polygons
+                              -------------------
+        begin                : 2016-11-08
+        git sha              : $Format:%H$
+        copyright            : (C) 2016 by Pedro Tarroso
+        email                : ptarroso@cibio.up.pt
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; version 2 of the License.               *
+ *                                                                         *
+ ***************************************************************************/
+"""
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 class kml():
+    """ creates a kml doc from geographic content """
 
     def __init__(self, name, version=1.0, encoding="utf-8",
                  namespace="http://www.opengis.net/kml/2.2"):
