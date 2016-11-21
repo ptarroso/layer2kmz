@@ -1,9 +1,9 @@
 [general]
 name=layer2kmz
 qgisMinimumVersion=2.0
-description=A plugin to build a kmz from a spatial layer
+description=Build a kmz file from a layer of spatial points, lines or polygons
 about=This plugin converts a layer of spatial points to kmz. It groups data to folders and generates the symbology as displayed in QGIS. At the moment, it only works with point data and with simple or categorized symbology.
-version=1.0
+version=1.1
 author=Pedro Tarroso
 email=ptarroso@cibio.up.pt
 experimental=False
@@ -14,3 +14,4 @@ repository=https://github.com/ptarroso/layer2kmz
 tracker=https://github.com/ptarroso/layer2kmz/issues
 icon=icon.png
 category=Vector
+changelog=v1.1: added support for polygons and lines
