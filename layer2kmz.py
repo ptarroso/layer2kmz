@@ -27,58 +27,10 @@ from qgis.core import *
 import resources
 # Import the code for the dialog
 from layer2kmz_dialog import layer2kmzDialog
-import os.path
+import os
 import tempfile
 import zipfile
 from kml import kml
-
-
-def createSymbol(imgname, symbol):
-    # Exports a QGIS symbol to png, using a QGIS canvas
-    # imgname - string for a image file name with path
-    # symbol - a symbol of class QgsMarkerSymbolV2
-    # Only works to point symbols!
-
-    ## adds 'png' extension to 'imgname' if missing
-    if imgname[-4:].lower() != ".png":
-        imgname += ".png"
-
-    ## Create a in memory vector layer with a point at (1,1)
-    vl = QgsVectorLayer("Point?crs=epsg:4326", "symbols", "memory")
-    pr = vl.dataProvider()
-    vl.startEditing()
-    fet = QgsFeature()
-    geo = QgsGeometry.fromPoint(QgsPoint(1,1))
-    fet.setGeometry(geo)
-    pr.addFeatures([fet])
-    vl.commitChanges()
-    vl.updateExtents()
-
-    ## Adds the "symbol" to the layer
-    rnd = vl.rendererV2()
-    rnd.setSymbol(symbol)
-
-    ## Register the layer without showing
-    newlyr= QgsMapLayerRegistry.instance().addMapLayer(vl, False)
-
-    ## Starts a new canvas, centers to vl and exports to png
-    canvas = QgsMapCanvas()
-    ## Transparent background
-    color = QColor(255, 255, 255, 0)
-    canvas.setCanvasColor(color)
-    canvas.enableAntiAliasing(True)
-    canvas.setExtent(QgsRectangle(0.5,0.5,1.5,1.5))
-    canvas.setLayerSet([QgsMapCanvasLayer(vl)])
-    settings = canvas.mapSettings()
-    settings.setOutputSize(QSize(30,30)) ## output png size 30x30
-    job = QgsMapRendererSequentialJob(settings)
-    job.start()
-    job.waitForFinished()
-    img = job.renderedImage()
-    img.save(imgname,"png")
-
-    ## Unregister the layer
-    #QgsMapLayerRegistry.instance().removeMapLayer(newlyr.id())
 
 class layer2kmz:
     """QGIS Plugin Implementation."""
@@ -236,8 +188,9 @@ class layer2kmz:
 
         # Update combos
         layers = self.iface.legendInterface().layers()
-        pntLayers = [lyr for lyr in layers if lyr.type() == 0 and lyr.geometryType() == 0]
-        self.dlg.updateLayerCombo([lyr.name() for lyr in pntLayers])
+        ## show all vector layers in combobox
+        allLayers = [lyr for lyr in layers if lyr.type() == 0]
+        self.dlg.updateLayerCombo([lyr.name() for lyr in allLayers])
 
         # show the dialog
         self.dlg.show()
@@ -281,13 +234,17 @@ class kmlprocess():
         self.outFile = outFile
         self.tmpDir = tempfile.gettempdir()
         self.progress = prg
+        self.totalCounter = 1
+        self.counter = 0
 
     def processLayer(self):
         lyr = self.layer
-        self.counter = lyr.featureCount() + 1
+        ## Sets the total counter for updating progress
+        self.totalCounter = lyr.featureCount() * 2 
+
         lyrFields = [f.name() for f in lyr.pendingFields()]
         expFieldInd = [lyrFields.index(f) for f in self.exports]
-        iter = lyr.getFeatures()
+        featIter = lyr.getFeatures()
         fldInd = lyrFields.index(self.folder)
         lblInd = lyrFields.index(self.label)
 
@@ -301,17 +258,26 @@ class kmlprocess():
         featFolder = []
         coords = []
         labels = []
-        pg = 0
-        for feature in iter:
-            self.updateProgress(pg)
+
+        for feature in featIter:
+            self.updateProgress()
+            fGeo = feature.geometry().type()
             # note: converting everything to string!
             data.append([str(feature.attributes()[i]) for i in expFieldInd])
             featFolder.append(str(feature.attributes()[fldInd]))
             labels.append(str(feature.attributes()[lblInd]))
-            coords.append(feature.geometry().asPoint())
+            if fGeo == 0: # Point case
+                crd = tuple(feature.geometry().asPoint())
+            elif fGeo == 1: # Line case
+                crd = feature.geometry().asPolyline()
+                crd = [tuple(x) for x in crd]
+            elif fGeo == 2: # Polygon case
+                crd = feature.geometry().asPolygon()
+                crd = [[tuple(x) for x in y] for y in crd]
+            coords.append(crd)
             if self.styleField is not None:
                 styles.append(str(feature.attributes()[styInd]))
-            pg += 1
+            self.counter += 1
 
         self.coords = coords
         self.data = data
@@ -322,6 +288,7 @@ class kmlprocess():
 
     def getStyles(self):
         lyr = self.layer
+        lyrGeo = lyr.geometryType()
         rnd = lyr.rendererV2()
         styles = []
         if rnd.type() == u'categorizedSymbol':
@@ -330,23 +297,50 @@ class kmlprocess():
             for cat in rnd.categories():
                 name = str(cat.value())
                 symb = cat.symbol()
-                imgname = "color_%s.png" % name
-                createSymbol(os.path.join(self.tmpDir, imgname), symb)
-                styles.append([name, {"iconfile": imgname}])
+                if lyrGeo == 0: ## Point case
+                    imgname = "color_%s.png" % name
+                    symb.exportImage(os.path.join(self.tmpDir, imgname), "png",
+                                     QSize(30, 30))
+                    styles.append([name, {"iconfile": imgname}])
+                elif lyrGeo == 1: ## Line case
+                    color = "%x" % symb.color().rgba()
+                    width = symb.width()
+                    styles.append([name, {"color": color, "width": width}])
+                elif lyrGeo == 2: ## Polygon case
+                    fill = "%x" % symb.color().rgba()
+                    outline = True
+                    styles.append([name, {"fill": fill, "outline": outline}])
         elif rnd.type() == u'singleSymbol':
             symb = rnd.symbol()
-            imgname = "color_style.png"
-            createSymbol(os.path.join(self.tmpDir, imgname), symb)
-            styles.append(["style", {"iconfile": imgname}])
+            if lyrGeo == 0: ## Point case
+                imgname = "color_style.png"
+                symb.exportImage(os.path.join(self.tmpDir, imgname), "png",
+                                 QSize(30, 30))
+                styles.append(["style", {"iconfile": imgname}])
+            elif lyrGeo == 1: ## Line case
+                color = "%x" % symb.color().rgba()
+                width = symb.width()
+                styles.append(["style", {"color": color, "width": width}])
+            elif lyrGeo == 2: ## Polygon case
+                fill = "%x" % symb.color().rgba()
+                outline = True
+                styles.append(["style", {"fill": fill, "outline": outline}])
         else:
             self.error.emit("Symbology must be single or categorized.")
             self.finished.emit(False)
 
         self.styles = styles
 
-    def updateProgress(self, i):
-        progress = int(i / float(self.counter) * 100)
+    def updateProgress(self):
+        progress = int(self.counter / float(self.totalCounter) * 100)
         self.progress(progress)
+
+    def cleanup(self):
+        ## Removes the temporary files created
+        for style in self.styles:
+            if "iconfile" in style[1]:
+                os.remove(os.path.join(self.tmpDir, style[1]["iconfile"]))
+        os.remove(os.path.join(self.tmpDir, "doc.kml"))
 
     def process(self):
         self.getStyles()
@@ -361,14 +355,16 @@ class kmlprocess():
 
         style = self.styles[0][0]
         for i in range(len(self.data)):
+            self.updateProgress()
             folder = self.featFolder[i]
             name = self.labels[i]
-            coords = tuple(self.coords[i])
+            coords = self.coords[i]
             if self.styleField is not None:
                 style = self.featStyles[i]
             fields = {}
             fields[self.layer.name()] = zip(self.exports, self.data[i])
             Kml.addPlacemark(folder, name, style, coords, fields)
+            self.counter += 1
 
         tmpKml = os.path.join(self.tmpDir, "doc.kml")
         fstream = open(tmpKml, "w")
@@ -383,4 +379,5 @@ class kmlprocess():
                 z.write(filename, arcname=os.path.basename(filename))
         z.close()
 
-        self.updateProgress(self.counter)
+        self.cleanup()
+        self.updateProgress()

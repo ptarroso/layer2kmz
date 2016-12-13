@@ -219,6 +219,10 @@ class kml():
                 crd = self._addLine(coords)
             elif isinstance(coords[0], list):
                 crd = self._addPolygon(coords)
+            else:
+                msg = "Type " + type(coords[0]) + " is not accepted. Please " \
+                      "use tuples for coordinates pairs."
+                raise Exception(msg)
         else:
             raise Exception("'coords' must be a tuple or a list.")
 
