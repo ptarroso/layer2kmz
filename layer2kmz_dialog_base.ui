@@ -61,7 +61,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Points Vector Layer</string>
+    <string>Vector Layer</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
