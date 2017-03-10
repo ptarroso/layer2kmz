@@ -223,6 +223,14 @@ class layer2kmz:
                                   outFile, self.dlg.ProgressBar)
                 kmlproc.process()
 
+def conv2str(x):
+    ## Converts the input to string, avoiding unicode errors
+    try:
+        cv = str(x)
+    except UnicodeEncodeError:
+        cv = x #.encode("ascii", "xmlcharrefreplace")
+    return(cv)
+
 
 class kmlprocess():
     def __init__(self, layer, label, folder, exports, outFile, prg):
@@ -263,9 +271,9 @@ class kmlprocess():
             self.updateProgress()
             fGeo = feature.geometry().type()
             # note: converting everything to string!
-            data.append([str(feature.attributes()[i]) for i in expFieldInd])
-            featFolder.append(str(feature.attributes()[fldInd]))
-            labels.append(str(feature.attributes()[lblInd]))
+            data.append([conv2str(feature.attributes()[i]) for i in expFieldInd])
+            featFolder.append(conv2str(feature.attributes()[fldInd]))
+            labels.append(conv2str(feature.attributes()[lblInd]))
             if fGeo == 0: # Point case
                 crd = tuple(feature.geometry().asPoint())
             elif fGeo == 1: # Line case
@@ -276,7 +284,7 @@ class kmlprocess():
                 crd = [[tuple(x) for x in y] for y in crd]
             coords.append(crd)
             if self.styleField is not None:
-                styles.append(str(feature.attributes()[styInd]))
+                styles.append(conv2str(feature.attributes()[styInd]))
             self.counter += 1
 
         self.coords = coords
@@ -295,7 +303,7 @@ class kmlprocess():
             styleField = rnd.classAttribute()
             self.styleField = styleField
             for cat in rnd.categories():
-                name = str(cat.value())
+                name = conv2str(cat.value())
                 symb = cat.symbol()
                 if lyrGeo == 0: ## Point case
                     imgname = "color_%s.png" % name

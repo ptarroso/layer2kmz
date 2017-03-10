@@ -22,6 +22,13 @@
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
+def checkstr(x):
+    ## avoids unicode conversions
+    if not isinstance(x, basestring):
+        ## attempt conversion to string
+        x = str(x)
+    return(x)
+
 class kml():
     """ creates a kml doc from geographic content """
 
@@ -141,11 +148,12 @@ class kml():
         return(poly)
 
     def addFolder(self, foldername):
+        foldername = checkstr(foldername)
         if foldername in self.listFolders():
             raise Exception("Folder %s already created." % folder)
 
         folder = ET.Element("Folder")
-        folder.set("id", str(foldername))
+        folder.set("id", foldername)
         name = ET.Element("name")
         name.text = foldername
         folder.append(name)
@@ -187,8 +195,8 @@ class kml():
                                     "before a placemark using it." \
                                     % (field, schema))
 
-        folder = str(folder)
-        name = str(name)
+        folder = checkstr(folder)
+        name = checkstr(name)
 
         if folder not in self.listFolders():
             self.addFolder(folder)
@@ -313,5 +321,6 @@ class kml():
         for folder in self.folders:
             doc.append(folder)
         root.append(doc)
-        kmlstr = minidom.parseString(ET.tostring(root))
-        return kmlstr.toprettyxml(indent="    ")
+        kmlALL = ET.tostring(root, encoding=self.encoding)
+        kmlstr = minidom.parseString(kmlALL)
+        return kmlstr.toprettyxml(indent="    ", encoding=self.encoding)
