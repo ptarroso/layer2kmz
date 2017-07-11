@@ -231,6 +231,10 @@ def conv2str(x):
         cv = x #.encode("ascii", "xmlcharrefreplace")
     return(cv)
 
+def argb2abgr(col):
+    #KML format: AlphaBGR instead of AlphaRGB
+    return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
+
 
 class kmlprocess():
     def __init__(self, layer, label, folder, exports, outFile, prg):
@@ -248,7 +252,7 @@ class kmlprocess():
     def processLayer(self):
         lyr = self.layer
         ## Sets the total counter for updating progress
-        self.totalCounter = lyr.featureCount() * 2 
+        self.totalCounter = lyr.featureCount() * 2
 
         lyrFields = [f.name() for f in lyr.pendingFields()]
         expFieldInd = [lyrFields.index(f) for f in self.exports]
@@ -269,22 +273,32 @@ class kmlprocess():
 
         for feature in featIter:
             self.updateProgress()
+
             fGeo = feature.geometry().type()
-            # note: converting everything to string!
-            data.append([conv2str(feature.attributes()[i]) for i in expFieldInd])
-            featFolder.append(conv2str(feature.attributes()[fldInd]))
-            labels.append(conv2str(feature.attributes()[lblInd]))
-            if fGeo == 0: # Point case
-                crd = tuple(feature.geometry().asPoint())
-            elif fGeo == 1: # Line case
-                crd = feature.geometry().asPolyline()
-                crd = [tuple(x) for x in crd]
-            elif fGeo == 2: # Polygon case
-                crd = feature.geometry().asPolygon()
-                crd = [[tuple(x) for x in y] for y in crd]
-            coords.append(crd)
+
             if self.styleField is not None:
-                styles.append(conv2str(feature.attributes()[styInd]))
+                styleFeat = conv2str(feature.attributes()[styInd])
+
+            # Export only features that have active styles (displayed on the map)
+            if (self.styleField is None or styleFeat in self.getStylesNames()):
+                # note: converting everything to string!
+                data.append([conv2str(feature.attributes()[i]) for i in expFieldInd])
+                featFolder.append(conv2str(feature.attributes()[fldInd]))
+                labels.append(conv2str(feature.attributes()[lblInd]))
+                if fGeo == 0: # Point case
+                    crd = tuple(feature.geometry().asPoint())
+                elif fGeo == 1: # Line case
+                    crd = feature.geometry().asPolyline()
+                    crd = [tuple(x) for x in crd]
+                elif fGeo == 2: # Polygon case
+                    crd = feature.geometry().asPolygon()
+                    crd = [[tuple(x) for x in y] for y in crd]
+                coords.append(crd)
+                if self.styleField is not None:
+                    styles.append(styleFeat)
+            else:
+                self.totalCounter -= 1
+
             self.counter += 1
 
         self.coords = coords
@@ -294,7 +308,7 @@ class kmlprocess():
         if self.styleField is not None:
             self.featStyles = styles
 
-    def getStyles(self):
+    def setStyles(self):
         lyr = self.layer
         lyrGeo = lyr.geometryType()
         rnd = lyr.rendererV2()
@@ -305,19 +319,24 @@ class kmlprocess():
             for cat in rnd.categories():
                 name = conv2str(cat.value())
                 symb = cat.symbol()
-                if lyrGeo == 0: ## Point case
-                    imgname = "color_%s.png" % name
-                    symb.exportImage(os.path.join(self.tmpDir, imgname), "png",
-                                     QSize(30, 30))
-                    styles.append([name, {"iconfile": imgname}])
-                elif lyrGeo == 1: ## Line case
-                    color = "%x" % symb.color().rgba()
-                    width = symb.width()
-                    styles.append([name, {"color": color, "width": width}])
-                elif lyrGeo == 2: ## Polygon case
-                    fill = "%x" % symb.color().rgba()
-                    outline = True
-                    styles.append([name, {"fill": fill, "outline": outline}])
+                if cat.renderState():
+                    if lyrGeo == 0: ## Point case
+                        imgname = "color_%s.png" % name
+                        symb.exportImage(os.path.join(self.tmpDir, imgname),
+                                         "png", QSize(30, 30))
+                        styles.append([name, {"iconfile": imgname}])
+                    elif lyrGeo == 1: ## Line case
+                        color = "%x" % symb.color().rgba()
+                        width = symb.width()
+                        styles.append([name, {"color": color, "width": width}])
+                    elif lyrGeo == 2: ## Polygon case
+                        symbLyr = symb.symbolLayer(0) # Get only first symbol layer
+                        fill = argb2abgr("%x" % symbLyr.color().rgba())
+                        border = argb2abgr("%x" % symbLyr.borderColor().rgba())
+                        outline = symbLyr.borderWidth()
+                        styles.append([name, {"fill": fill,
+                                              "outline": outline,
+                                               "border": border}])
         elif rnd.type() == u'singleSymbol':
             symb = rnd.symbol()
             if lyrGeo == 0: ## Point case
@@ -330,14 +349,22 @@ class kmlprocess():
                 width = symb.width()
                 styles.append(["style", {"color": color, "width": width}])
             elif lyrGeo == 2: ## Polygon case
-                fill = "%x" % symb.color().rgba()
-                outline = True
-                styles.append(["style", {"fill": fill, "outline": outline}])
+                symbLyr = symb.symbolLayer(0) # Get only first symbol layer
+                fill = argb2abgr("%x" % symbLyr.color().rgba())
+                border = argb2abgr("%x" % symbLyr.borderColor().rgba())
+                outline = symbLyr.borderWidth()
+                styles.append(["style", {"fill": fill,
+                                         "outline": outline,
+                                         "border": border}])
         else:
             self.error.emit("Symbology must be single or categorized.")
             self.finished.emit(False)
 
         self.styles = styles
+
+    def getStylesNames(self):
+        if hasattr(self, 'styles'):
+            return([x[0] for x in self.styles])
 
     def updateProgress(self):
         progress = int(self.counter / float(self.totalCounter) * 100)
@@ -351,7 +378,7 @@ class kmlprocess():
         os.remove(os.path.join(self.tmpDir, "doc.kml"))
 
     def process(self):
-        self.getStyles()
+        self.setStyles()
         self.processLayer()
         Kml = kml(self.layer.name())
         types = ["string" for x in self.exports]

@@ -75,7 +75,7 @@ class kml():
         ## an icon, line or polygon
         ## icon - needs "iconfile = str"
         ## line - needs either "color = HEX" or "width = int"
-        ## polygon - needs either "fill = HEX" or "outline = Bool"
+        ## polygon - needs "fill = HEX", "outline = Bool/int" and "border = HEX"
 
         if idStyle in self.listStyles():
             raise Exception("Styles must be unique. " \
@@ -84,13 +84,13 @@ class kml():
             raise Exception("The function need more arguments to create a " \
                             "style. Available args are 'iconfile' for icon " \
                             "style, 'color' and 'width' for line style, and " \
-                            "'fill' and 'outline' for poygon style")
+                            "'fill', 'outline' and 'border' for polygon style")
 
         style = ET.Element("Style")
         style.set("id", idStyle)
 
         linetest = ["color", "width"]
-        polytest = ["fill", "outline"]
+        polytest = ["fill", "outline", "border"]
 
         if "iconfile" in kwargs.keys():
             style.append(self._addIconSty(kwargs["iconfile"]))
@@ -102,12 +102,22 @@ class kml():
                 line = self._addLineSty(kwargs[linetest[0]])
             style.append(line)
         if any(i in kwargs.keys() for i in polytest):
-            try:
-                poly = self._addPolySty(kwargs["fill"], kwargs["outline"])
-            except KeyError, e:
-                e = polytest.pop(polytest.index(e.args[0]))
-                poly = self._addPolySty(kwargs[polytest[0]])
+            line = None
+            if all(x in polytest for x in kwargs.keys()):
+                # Full case: polygon with fill, outline and border
+                poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
+                line = self._addLineSty(kwargs["border"],
+                                        int(kwargs["outline"]))
+            elif all(x in polytest[:2] for x in kwargs.keys()):
+                # Simple case: polygon with fill and outline defined as boolean
+                poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
+            elif all(x in polytest[:1] for x in kwargs.keys()):
+                # Basic case: only fill color provided
+                poly = self._addPolySty(kwargs["fill"])
+
             style.append(poly)
+            if line:
+                style.append(line)
 
         self.styles.append(style)
 
