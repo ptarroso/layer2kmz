@@ -122,11 +122,13 @@ class kml():
         self.styles.append(style)
 
     def _addIconSty(self, iconfile):
+        istyle = ET.Element("IconStyle")
         icon = ET.Element("Icon")
         href = ET.Element("href")
         href.text = iconfile
         icon.append(href)
-        return(icon)
+        istyle.append(icon)
+        return(istyle)
 
     def _addLineSty(self, color, width = 1):
         ## color is hexadecimal string
