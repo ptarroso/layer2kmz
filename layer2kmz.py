@@ -326,7 +326,7 @@ class kmlprocess():
                                          "png", QSize(30, 30))
                         styles.append([name, {"iconfile": imgname}])
                     elif lyrGeo == 1: ## Line case
-                        color = "%x" % symb.color().rgba()
+                        color = argb2abgr("%x" % symb.color().rgba())
                         width = symb.width()
                         styles.append([name, {"color": color, "width": width}])
                     elif lyrGeo == 2: ## Polygon case
