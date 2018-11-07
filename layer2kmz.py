@@ -5,7 +5,7 @@
                                  A QGIS plugin
  Build a kmz from a layer of spatial points, lines or polygons
                               -------------------
-        begin                : 2016-11-08
+        begin                : 2018-02-02
         git sha              : $Format:%H$
         copyright            : (C) 2016 by Pedro Tarroso
         email                : ptarroso@cibio.up.pt
@@ -19,20 +19,27 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import *
-from PyQt4.QtGui import QAction, QIcon, QColor
-from qgis.gui import QgsMapCanvas, QgsMapCanvasLayer
+from builtins import str, zip, range, object
+
+from PyQt5.QtCore import QSettings, QCoreApplication, QTranslator, qVersion
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtWidgets import QAction
+
+from qgis.gui import QgsMapCanvas
 from qgis.core import *
+
 # Initialize Qt resources from file resources.py
-import resources
+from . import resources
+
 # Import the code for the dialog
-from layer2kmz_dialog import layer2kmzDialog
+from .layer2kmz_dialog import layer2kmzDialog
 import os
 import tempfile
 import zipfile
-from kml import kml
+from .kml import kml
 
-class layer2kmz:
+class layer2kmz(object):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -66,13 +73,13 @@ class layer2kmz:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&layer2kmz')
+        self.menu = self.tr('&layer2kmz')
         # TODO: We are going to let the user set this up in a future iteration
         if self.iface.pluginToolBar():
             self.toolbar = self.iface.pluginToolBar()
         else:
-            self.toolbar = self.iface.addToolBar(u'layer2kmz')
-        self.toolbar.setObjectName(u'layer2kmz')
+            self.toolbar = self.iface.addToolBar('layer2kmz')
+        self.toolbar.setObjectName('layer2kmz')
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -168,7 +175,7 @@ class layer2kmz:
         icon_path = ':/plugins/layer2kmz/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Layer to KMZ'),
+            text=self.tr('Layer to KMZ'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -177,7 +184,7 @@ class layer2kmz:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginVectorMenu(
-                self.tr(u'&layer2kmz'),
+                self.tr('&layer2kmz'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
@@ -187,7 +194,8 @@ class layer2kmz:
         """Run method that performs all the real work"""
 
         # Update combos
-        layers = self.iface.legendInterface().layers()
+        layerTree = QgsProject.instance().layerTreeRoot().findLayers()
+        layers = [lyr.layer() for lyr in layerTree]
         ## show all vector layers in combobox
         allLayers = [lyr for lyr in layers if lyr.type() == 0]
         self.dlg.updateLayerCombo([lyr.name() for lyr in allLayers])
@@ -235,7 +243,12 @@ def argb2abgr(col):
     #KML format: AlphaBGR instead of AlphaRGB
     return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
 
+<<<<<<< HEAD
 class kmlprocess():
+=======
+
+class kmlprocess(object):
+>>>>>>> Migrate to QGIS v3
     def __init__(self, layer, label, folder, exports, outFile, prg):
         self.layer = layer
         self.label = label
@@ -253,7 +266,7 @@ class kmlprocess():
         ## Sets the total counter for updating progress
         self.totalCounter = lyr.featureCount() * 2
 
-        lyrFields = [f.name() for f in lyr.pendingFields()]
+        lyrFields = [f.name() for f in lyr.fields()]
         expFieldInd = [lyrFields.index(f) for f in self.exports]
         featIter = lyr.getFeatures()
         fldInd = lyrFields.index(self.folder)
@@ -310,9 +323,9 @@ class kmlprocess():
     def setStyles(self):
         lyr = self.layer
         lyrGeo = lyr.geometryType()
-        rnd = lyr.rendererV2()
+        rnd = lyr.renderer()
         styles = []
-        if rnd.type() == u'categorizedSymbol':
+        if rnd.type() == 'categorizedSymbol':
             styleField = rnd.classAttribute()
             self.styleField = styleField
             for cat in rnd.categories():
@@ -331,12 +344,12 @@ class kmlprocess():
                     elif lyrGeo == 2: ## Polygon case
                         symbLyr = symb.symbolLayer(0) # Get only first symbol layer
                         fill = argb2abgr("%x" % symbLyr.color().rgba())
-                        border = argb2abgr("%x" % symbLyr.borderColor().rgba())
-                        outline = symbLyr.borderWidth()
+                        border = argb2abgr("%x" % symbLyr.strokeColor().rgba())
+                        outline = symbLyr.strokeWidth()
                         styles.append([name, {"fill": fill,
                                               "outline": outline,
                                                "border": border}])
-        elif rnd.type() == u'singleSymbol':
+        elif rnd.type() == 'singleSymbol':
             symb = rnd.symbol()
             if lyrGeo == 0: ## Point case
                 imgname = "color_style.png"
@@ -350,8 +363,8 @@ class kmlprocess():
             elif lyrGeo == 2: ## Polygon case
                 symbLyr = symb.symbolLayer(0) # Get only first symbol layer
                 fill = argb2abgr("%x" % symbLyr.color().rgba())
-                border = argb2abgr("%x" % symbLyr.borderColor().rgba())
-                outline = symbLyr.borderWidth()
+                border = argb2abgr("%x" % symbLyr.strokeColor().rgba())
+                outline = symbLyr.strokeWidth()
                 styles.append(["style", {"fill": fill,
                                          "outline": outline,
                                          "border": border}])
@@ -397,12 +410,14 @@ class kmlprocess():
                 style = self.featStyles[i]
             fields = {}
             fields[self.layer.name()] = zip(self.exports, self.data[i])
+            ## TODO:Maybe add a warning input data must be single part
             Kml.addPlacemark(folder, name, style, coords, fields)
             self.counter += 1
 
         tmpKml = os.path.join(self.tmpDir, "doc.kml")
-        fstream = open(tmpKml, "w")
-        fstream.writelines(Kml.generatekml())
+        fstream = open(tmpKml, "wb")
+        kmlstr = Kml.generatekml()
+        fstream.write(kmlstr)
         fstream.close()
 
         z = zipfile.ZipFile(self.outFile, "w")

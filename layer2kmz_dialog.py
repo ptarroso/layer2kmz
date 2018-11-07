@@ -5,7 +5,7 @@
                                  A QGIS plugin
  Build a kmz from a layer of spatial points, lines or polygons
                               -------------------
-        begin                : 2016-11-08
+        begin                : 2016-02-02
         git sha              : $Format:%H$
         copyright            : (C) 2016 by Pedro Tarroso
         email                : ptarroso@cibio.up.pt
@@ -20,13 +20,18 @@
  ***************************************************************************/
 """
 import os
-from PyQt4 import QtGui, uic, QtCore
+
+from PyQt5 import uic
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+
+from qgis.core import QgsProject, Qgis
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'layer2kmz_dialog_base.ui'))
 
 
-class layer2kmzDialog(QtGui.QDialog, FORM_CLASS):
+class layer2kmzDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, iface, parent=None):
         """Constructor."""
         super(layer2kmzDialog, self).__init__(parent)
@@ -38,9 +43,9 @@ class layer2kmzDialog(QtGui.QDialog, FORM_CLASS):
     def outFile(self):
         # Show the file dialog for output
         self.outputLine.clear()
-        fileDialog = QtGui.QFileDialog()
+        fileDialog = QtWidgets.QFileDialog()
         outFileName = fileDialog.getSaveFileName(self, "Save as", ".",
-                                                 "kmz (*.kmz)")
+                                                 "kmz (*.kmz)")[0]
         if outFileName:
             if outFileName[-4:].lower() != ".kmz":
                 outFileName += ".kmz"
@@ -48,21 +53,17 @@ class layer2kmzDialog(QtGui.QDialog, FORM_CLASS):
             self.outputLine.insert(outFileName)
 
     def getVectorLayer(self):
-        return(unicode(self.layerCombo.currentText()))
+        return(str(self.layerCombo.currentText()))
 
     def getLabel(self):
-        return(unicode(self.labelCombo.currentText()))
+        return(str(self.labelCombo.currentText()))
 
     def getFolder(self):
-        return(unicode(self.folderCombo.currentText()))
+        return(str(self.folderCombo.currentText()))
 
     def getExports(self):
-        exports = []
-        count = self.exportList.count()
-        for i in range(0, count):
-            item = self.exportList.item(i)
-            if self.exportList.isItemSelected(item):
-                exports.append(item.text())
+        selected = self.exportList.selectedItems()
+        exports = [item.text() for item in selected]
         return(exports)
 
     def getOutFile(self):
@@ -77,11 +78,12 @@ class layer2kmzDialog(QtGui.QDialog, FORM_CLASS):
     def updateFields(self):
         layer = self.getVectorLayer()
         if layer != "":
-            allLayers = self.iface.legendInterface().layers()
+            layerTree = QgsProject.instance().layerTreeRoot().findLayers()
+            allLayers = [lyr.layer() for lyr in layerTree]
             allLyrNames = [lyr.name() for lyr in allLayers]
             if layer in allLyrNames:
                 lyr = allLayers[allLyrNames.index(layer)]
-                fields = lyr.pendingFields()
+                fields = lyr.fields()
                 self.labelCombo.clear()
                 self.folderCombo.clear()
                 self.exportList.clear()
@@ -92,13 +94,12 @@ class layer2kmzDialog(QtGui.QDialog, FORM_CLASS):
 
     def setProgressBar(self, main, text, maxVal=100):
         self.widget = self.iface.messageBar().createMessage(main, text)
-        self.prgBar = QtGui.QProgressBar()
+        self.prgBar = QtWidgets.QProgressBar()
         self.prgBar.setAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.prgBar.setValue(0)
         self.prgBar.setMaximum(maxVal)
         self.widget.layout().addWidget(self.prgBar)
-        self.iface.messageBar().pushWidget(self.widget,
-                                           self.iface.messageBar().INFO)
+        self.iface.messageBar().pushWidget(self.widget, Qgis.Info)
 
     def showMessage(self, main, txt):
         self.widget.setTitle(main)

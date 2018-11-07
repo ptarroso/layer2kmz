@@ -19,20 +19,11 @@
  *                                                                         *
  ***************************************************************************/
 """
+from builtins import str, range, object
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-def checkstr(x):
-    ## avoids unicode conversions
-    if not isinstance(x, basestring):
-        ## attempt conversion to string
-        x = str(x)
-    return(x)
-
-schemaTypes = ["string", "int", "uint", "short", "ushort", "float", "double",
-               "bool"]
-
-class kml():
+class kml(object):
     """ creates a kml doc from geographic content """
 
     def __init__(self, name, version=1.0, encoding="utf-8",
@@ -83,7 +74,7 @@ class kml():
         if idStyle in self.listStyles():
             raise Exception("Styles must be unique. " \
                             "Style with ID %s already present." % idStyle)
-        if kwargs.keys() == []:
+        if list(kwargs.keys()) == []:
             raise Exception("The function need more arguments to create a " \
                             "style. Available args are 'iconfile' for icon " \
                             "style, 'color' and 'width' for line style, and " \
@@ -100,7 +91,7 @@ class kml():
         if any(i in kwargs.keys() for i in linetest):
             try:
                 line = self._addLineSty(kwargs["color"], kwargs["width"])
-            except KeyError, e:
+            except KeyError as e:
                 e = linetest.pop(linetest.index(e.args[0]))
                 line = self._addLineSty(kwargs[linetest[0]])
             style.append(line)
@@ -214,7 +205,7 @@ class kml():
         return(poly)
 
     def addFolder(self, foldername):
-        foldername = checkstr(foldername)
+        foldername = str(foldername)
         if foldername in self.listFolders():
             raise Exception("Folder %s already created." % folder)
 
@@ -261,8 +252,8 @@ class kml():
                                     "before a placemark using it." \
                                     % (field, schema))
 
-        folder = checkstr(folder)
-        name = checkstr(name)
+        folder = str(folder)
+        name = str(name)
 
         if folder not in self.listFolders():
             self.addFolder(folder)
@@ -389,10 +380,4 @@ class kml():
         root.append(doc)
         kmlALL = ET.tostring(root, encoding=self.encoding)
         kmlstr = minidom.parseString(kmlALL)
-        kml = kmlstr.toprettyxml(indent="    ", encoding=self.encoding)
-        
-        # The ugly solution for CDATA...
-        for i in xrange(len(self.cdata)):
-            kml = kml.replace("REPLACE_CDATA_%s" % i, self.cdata[i])
-            
-        return kml
+        return(kmlstr.toprettyxml(indent="    ", encoding=self.encoding))

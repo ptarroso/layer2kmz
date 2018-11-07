@@ -1,0 +1,310 @@
+--- layer2kmz-1.4.1/layer2kmz/kml.py	(original)
++++ layer2kmz-1.4.1/layer2kmz/kml.py	(refactored)
+@@ -19,17 +19,20 @@
+  *                                                                         *
+  ***************************************************************************/
+ """
++from builtins import str
++from builtins import range
++from builtins import object
+ import xml.etree.ElementTree as ET
+ from xml.dom import minidom
+ 
+ def checkstr(x):
+     ## avoids unicode conversions
+-    if not isinstance(x, basestring):
++    if not isinstance(x, str):
+         ## attempt conversion to string
+         x = str(x)
+     return(x)
+ 
+-class kml():
++class kml(object):
+     """ creates a kml doc from geographic content """
+ 
+     def __init__(self, name, version=1.0, encoding="utf-8",
+@@ -80,7 +83,7 @@
+         if idStyle in self.listStyles():
+             raise Exception("Styles must be unique. " \
+                             "Style with ID %s already present." % idStyle)
+-        if kwargs.keys() == []:
++        if list(kwargs.keys()) == []:
+             raise Exception("The function need more arguments to create a " \
+                             "style. Available args are 'iconfile' for icon " \
+                             "style, 'color' and 'width' for line style, and " \
+@@ -92,26 +95,26 @@
+         linetest = ["color", "width"]
+         polytest = ["fill", "outline", "border"]
+ 
+-        if "iconfile" in kwargs.keys():
++        if "iconfile" in list(kwargs.keys()):
+             style.append(self._addIconSty(kwargs["iconfile"]))
+-        if any(i in kwargs.keys() for i in linetest):
++        if any(i in list(kwargs.keys()) for i in linetest):
+             try:
+                 line = self._addLineSty(kwargs["color"], kwargs["width"])
+-            except KeyError, e:
++            except KeyError as e:
+                 e = linetest.pop(linetest.index(e.args[0]))
+                 line = self._addLineSty(kwargs[linetest[0]])
+             style.append(line)
+-        if any(i in kwargs.keys() for i in polytest):
++        if any(i in list(kwargs.keys()) for i in polytest):
+             line = None
+-            if all(x in polytest for x in kwargs.keys()):
++            if all(x in polytest for x in list(kwargs.keys())):
+                 # Full case: polygon with fill, outline and border
+                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
+                 line = self._addLineSty(kwargs["border"],
+                                         int(kwargs["outline"]))
+-            elif all(x in polytest[:2] for x in kwargs.keys()):
++            elif all(x in polytest[:2] for x in list(kwargs.keys())):
+                 # Simple case: polygon with fill and outline defined as boolean
+                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
+-            elif all(x in polytest[:1] for x in kwargs.keys()):
++            elif all(x in polytest[:1] for x in list(kwargs.keys())):
+                 # Basic case: only fill color provided
+                 poly = self._addPolySty(kwargs["fill"])
+ 
+@@ -197,7 +200,7 @@
+             raise Exception("Style %s must be added before a " \
+                             "placemark using it." % (style))
+ 
+-        for schema in fieldData.keys():
++        for schema in list(fieldData.keys()):
+             if schema not in self.listSchemas():
+                 raise Exception("Schema %s must be added before a " \
+                                 "placemark using it." % (schema))
+@@ -222,7 +225,7 @@
+         styleUrl = ET.Element("styleUrl")
+         styleUrl.text = "#%s" % style
+         extData = ET.Element("ExtendedData")
+-        for schema in fieldData.keys():
++        for schema in list(fieldData.keys()):
+             schemaUrl = ET.Element("SchemaData")
+             schemaUrl.set("schemaUrl", schema)
+             for fdata in fieldData[schema]:
+@@ -301,23 +304,23 @@
+     def listStyles(self):
+         #returns a list of available styles IDs
+         sty = self.styles
+-        return([y[1] for x in sty for y in x.items() for z in y if z == "id"])
++        return([y[1] for x in sty for y in list(x.items()) for z in y if z == "id"])
+ 
+     def listSchemas(self):
+         #returns a list of available schemas IDs
+         sch = self.schemas
+-        return([y[1] for x in sch for y in x.items() for z in y if z == "id"])
++        return([y[1] for x in sch for y in list(x.items()) for z in y if z == "id"])
+ 
+     def listFields(self, schema):
+         #returns a list of available fields in schemas
+         sch = list(self.schemas[self.listSchemas().index(schema)])
+-        res = [y[1] for x in sch for y in x.items() for z in y if z == "name"]
++        res = [y[1] for x in sch for y in list(x.items()) for z in y if z == "name"]
+         return(res)
+ 
+     def listFolders(self):
+         #returns a list of available folders names
+         fld = self.folders
+-        return([y[1] for x in fld for y in x.items() for z in y if z == "id"])
++        return([y[1] for x in fld for y in list(x.items()) for z in y if z == "id"])
+ 
+     def generatekml(self):
+         root = ET.Element("kml")
+--- layer2kmz-1.4.1/layer2kmz/layer2kmz.py	(original)
++++ layer2kmz-1.4.1/layer2kmz/layer2kmz.py	(refactored)
+@@ -19,20 +19,26 @@
+  *                                                                         *
+  ***************************************************************************/
+ """
++from __future__ import absolute_import
++from builtins import str
++from builtins import zip
++from builtins import range
++from builtins import object
+ from PyQt4.QtCore import *
+-from PyQt4.QtGui import QAction, QIcon, QColor
++from qgis.PyQt.QtWidgets import QAction
++from qgis.PyQt.QtGui import QIcon, QColor
+ from qgis.gui import QgsMapCanvas, QgsMapCanvasLayer
+ from qgis.core import *
+ # Initialize Qt resources from file resources.py
+-import resources
++from . import resources
+ # Import the code for the dialog
+-from layer2kmz_dialog import layer2kmzDialog
++from .layer2kmz_dialog import layer2kmzDialog
+ import os
+ import tempfile
+ import zipfile
+-from kml import kml
+-
+-class layer2kmz:
++from .kml import kml
++
++class layer2kmz(object):
+     """QGIS Plugin Implementation."""
+ 
+     def __init__(self, iface):
+@@ -236,7 +242,7 @@
+     return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
+ 
+ 
+-class kmlprocess():
++class kmlprocess(object):
+     def __init__(self, layer, label, folder, exports, outFile, prg):
+         self.layer = layer
+         self.label = label
+@@ -397,7 +403,7 @@
+             if self.styleField is not None:
+                 style = self.featStyles[i]
+             fields = {}
+-            fields[self.layer.name()] = zip(self.exports, self.data[i])
++            fields[self.layer.name()] = list(zip(self.exports, self.data[i]))
+             Kml.addPlacemark(folder, name, style, coords, fields)
+             self.counter += 1
+ 
+@@ -409,7 +415,7 @@
+         z = zipfile.ZipFile(self.outFile, "w")
+         z.write(tmpKml, arcname="doc.kml")
+         for styDict in [x[1] for x in self.styles]:
+-            if "iconfile" in styDict.keys():
++            if "iconfile" in list(styDict.keys()):
+                 filename = os.path.join(self.tmpDir, styDict["iconfile"])
+                 z.write(filename, arcname=os.path.basename(filename))
+         z.close()
+--- layer2kmz-1.4.1/layer2kmz/layer2kmz_dialog.py	(original)
++++ layer2kmz-1.4.1/layer2kmz/layer2kmz_dialog.py	(refactored)
+@@ -19,8 +19,10 @@
+  *                                                                         *
+  ***************************************************************************/
+ """
++from builtins import str
++from builtins import range
+ import os
+-from PyQt4 import QtGui, uic, QtCore
++from qgis.PyQt import QtGui, uic, QtCore
+ 
+ FORM_CLASS, _ = uic.loadUiType(os.path.join(
+     os.path.dirname(__file__), 'layer2kmz_dialog_base.ui'))
+@@ -48,13 +50,13 @@
+             self.outputLine.insert(outFileName)
+ 
+     def getVectorLayer(self):
+-        return(unicode(self.layerCombo.currentText()))
++        return(str(self.layerCombo.currentText()))
+ 
+     def getLabel(self):
+-        return(unicode(self.labelCombo.currentText()))
++        return(str(self.labelCombo.currentText()))
+ 
+     def getFolder(self):
+-        return(unicode(self.folderCombo.currentText()))
++        return(str(self.folderCombo.currentText()))
+ 
+     def getExports(self):
+         exports = []
+--- layer2kmz-1.4.1/layer2kmz/plugin_upload.py	(original)
++++ layer2kmz-1.4.1/layer2kmz/plugin_upload.py	(refactored)
+@@ -4,10 +4,14 @@
+         Authors: A. Pasotti, V. Picavet
+         git sha              : $TemplateVCSFormat
+ """
++from __future__ import print_function
++from future import standard_library
++standard_library.install_aliases()
++from builtins import input
+ 
+ import sys
+ import getpass
+-import xmlrpclib
++import xmlrpc.client
+ from optparse import OptionParser
+ 
+ # Configuration
+@@ -31,25 +35,36 @@
+         parameters.server,
+         parameters.port,
+         ENDPOINT)
+-    print "Connecting to: %s" % hide_password(address)
++    # fix_print_with_import
++    print("Connecting to: %s" % hide_password(address))
+ 
+-    server = xmlrpclib.ServerProxy(address, verbose=VERBOSE)
++    server = xmlrpc.client.ServerProxy(address, verbose=VERBOSE)
+ 
+     try:
+         plugin_id, version_id = server.plugin.upload(
+-            xmlrpclib.Binary(open(arguments[0]).read()))
+-        print "Plugin ID: %s" % plugin_id
+-        print "Version ID: %s" % version_id
+-    except xmlrpclib.ProtocolError, err:
+-        print "A protocol error occurred"
+-        print "URL: %s" % hide_password(err.url, 0)
+-        print "HTTP/HTTPS headers: %s" % err.headers
+-        print "Error code: %d" % err.errcode
+-        print "Error message: %s" % err.errmsg
+-    except xmlrpclib.Fault, err:
+-        print "A fault occurred"
+-        print "Fault code: %d" % err.faultCode
+-        print "Fault string: %s" % err.faultString
++            xmlrpc.client.Binary(open(arguments[0]).read()))
++        # fix_print_with_import
++        print("Plugin ID: %s" % plugin_id)
++        # fix_print_with_import
++        print("Version ID: %s" % version_id)
++    except xmlrpc.client.ProtocolError as err:
++        # fix_print_with_import
++        print("A protocol error occurred")
++        # fix_print_with_import
++        print("URL: %s" % hide_password(err.url, 0))
++        # fix_print_with_import
++        print("HTTP/HTTPS headers: %s" % err.headers)
++        # fix_print_with_import
++        print("Error code: %d" % err.errcode)
++        # fix_print_with_import
++        print("Error message: %s" % err.errmsg)
++    except xmlrpc.client.Fault as err:
++        # fix_print_with_import
++        print("A fault occurred")
++        # fix_print_with_import
++        print("Fault code: %d" % err.faultCode)
++        # fix_print_with_import
++        print("Fault string: %s" % err.faultString)
+ 
+ 
+ def hide_password(url, start=6):
+@@ -85,7 +100,8 @@
+         help="Specify server name", metavar="plugins.qgis.org")
+     options, args = parser.parse_args()
+     if len(args) != 1:
+-        print "Please specify zip file.\n"
++        # fix_print_with_import
++        print("Please specify zip file.\n")
+         parser.print_help()
+         sys.exit(1)
+     if not options.server:
+@@ -95,8 +111,9 @@
+     if not options.username:
+         # interactive mode
+         username = getpass.getuser()
+-        print "Please enter user name [%s] :" % username,
+-        res = raw_input()
++        # fix_print_with_import
++        print("Please enter user name [%s] :" % username, end=' ')
++        res = input()
+         if res != "":
+             options.username = res
+         else:
+--- layer2kmz-1.4.1/layer2kmz/resources.py	(original)
++++ layer2kmz-1.4.1/layer2kmz/resources.py	(refactored)
+@@ -6,7 +6,7 @@
+ #
+ # WARNING! All changes made in this file will be lost!
+ 
+-from PyQt4 import QtCore
++from qgis.PyQt import QtCore
+ 
+ qt_resource_data = "\
+ \x00\x00\x36\x6d\
