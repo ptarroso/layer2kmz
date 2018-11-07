@@ -3,7 +3,7 @@ name=layer2kmz
 qgisMinimumVersion=2.0
 description=Build a kmz file from a layer of points, lines or polygons
 about=This plugin converts a layer of spatial data to kmz. It groups data to folders and generates the symbology as displayed in QGIS. At the moment, it only works with simple or categorized symbology. If you have suggestions or detected a bug, please open an issue in the tracker website! A special thanks to Jim Garner for all the testing on beta versions!
-version=1.4.1
+version=1.4.2
 author=Pedro Tarroso
 email=ptarroso@cibio.up.pt
 experimental=False
@@ -20,3 +20,4 @@ v1.2: corrected unicode error
 v1.3: only export features with symbols defined or active
 v1.4: Exports polygons with correct color and sets border width (in pixels)
 v1.4.1: Points now export correctly wit icon to different applications
+v1.4.2: Improved balloon table style and corrected error with line colors
