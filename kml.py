@@ -29,6 +29,9 @@ def checkstr(x):
         x = str(x)
     return(x)
 
+schemaTypes = ["string", "int", "uint", "short", "ushort", "float", "double",
+               "bool"]
+
 class kml():
     """ creates a kml doc from geographic content """
 
@@ -42,6 +45,7 @@ class kml():
         self.schemas = []
         self.styles = []
         self.folders = []
+        self.cdata = []
 
     def addSchema(self, idSchema, fieldnames, types):
         # idSchema - id ref for the schema
@@ -56,13 +60,12 @@ class kml():
                             "Schema with ID %s already present." % idSchema)
 
         schema = ET.Element("Schema")
-        schema.set("name", "")
+        schema.set("name", idSchema)
         schema.set("id", idSchema)
-        #self.schemas.append(idSchema)
 
         for i in range(len(fieldnames)):
-            if types[i].lower() not in ["string", "float"]:
-                raise Exception("types must be string or float!")
+            if types[i].lower() not in schemaTypes:
+                raise Exception("Invalid type for Schema")
             field = ET.Element("SimpleField")
             field.set("name", fieldnames[i])
             field.set("type", types[i])
@@ -118,9 +121,60 @@ class kml():
             style.append(poly)
             if line:
                 style.append(line)
+        
+        # Add a Ballon Style to display field data in GEarth
+        cdata = None
+        if "cdata" in kwargs.keys():
+            cdata = kwargs["cdata"] #user provided Ballon style
+        ballon = self.addBalloonStyle(cdata)
+        style.append(ballon)
 
         self.styles.append(style)
 
+    def addBalloonStyle(self, cdata=None):
+        ## Adds a Ballonstyle to stylename with a table listing all field names
+        ## and correspondent values.
+        ## cdata - a text with a ballonstyle CDATA to customize table style. if
+        ##         is "None", tham the default table style is applied
+        if cdata is None:
+            # The default style
+            cdata = "<br>$[name]<br/>\n"
+            cdata += "<table border=\"0\">\n"
+            cdata += "    <tbody>\n"
+            cdata += "        <tr style=\"color:#FFFFFF;background:#778899\">\n"
+            cdata += "            <th>Field name</th><th>Value</th>\n"
+            cdata += "        </tr>\n"
+            
+            i = 1
+            for schema in self.schemas:
+                schemaName = schema.get("name")
+                for field in self.listFields(schemaName):
+                    if i%2 == 0:
+                        cdata += "        <tr style=\"background:#E0E0F0\">\n"
+                    else:
+                        cdata += "        <tr style=\"background:#FFFFFF\">\n"
+                    cdata += "            <td>%s</td><td>$[%s/%s]</td>\n" % \
+                             (field, schemaName, field)
+                    cdata += "        </tr>\n"
+                    i += 1
+                
+                cdata += "    </tbody>\n"
+                cdata += "</table>\n"
+                
+        # Not a beautiful solution to add cdata, but for now it will work...
+        cdata = "<![CDATA[%s]]>" % (cdata)
+        if cdata in self.cdata:
+            pos = self.cdata.index(cdata)
+        else:
+            pos = len(self.cdata)
+            self.cdata.append(cdata)
+    
+        ballon = ET.Element("BalloonStyle")
+        txt = ET.Element("text")
+        txt.text = "REPLACE_CDATA_%s" % (pos)
+        ballon.append(txt)
+        return(ballon)
+                
     def _addIconSty(self, iconfile):
         istyle = ET.Element("IconStyle")
         icon = ET.Element("Icon")
@@ -224,7 +278,7 @@ class kml():
         extData = ET.Element("ExtendedData")
         for schema in fieldData.keys():
             schemaUrl = ET.Element("SchemaData")
-            schemaUrl.set("schemaUrl", schema)
+            schemaUrl.set("schemaUrl", "#%s" % schema)
             for fdata in fieldData[schema]:
                 sData = ET.Element("SimpleData")
                 sData.set("name", fdata[0])
@@ -335,4 +389,10 @@ class kml():
         root.append(doc)
         kmlALL = ET.tostring(root, encoding=self.encoding)
         kmlstr = minidom.parseString(kmlALL)
-        return kmlstr.toprettyxml(indent="    ", encoding=self.encoding)
+        kml = kmlstr.toprettyxml(indent="    ", encoding=self.encoding)
+        
+        # The ugly solution for CDATA...
+        for i in xrange(len(self.cdata)):
+            kml = kml.replace("REPLACE_CDATA_%s" % i, self.cdata[i])
+            
+        return kml

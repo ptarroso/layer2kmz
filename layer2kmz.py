@@ -235,7 +235,6 @@ def argb2abgr(col):
     #KML format: AlphaBGR instead of AlphaRGB
     return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
 
-
 class kmlprocess():
     def __init__(self, layer, label, folder, exports, outFile, prg):
         self.layer = layer
