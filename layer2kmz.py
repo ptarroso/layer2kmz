@@ -243,12 +243,8 @@ def argb2abgr(col):
     #KML format: AlphaBGR instead of AlphaRGB
     return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
 
-<<<<<<< HEAD
-class kmlprocess():
-=======
 
 class kmlprocess(object):
->>>>>>> Migrate to QGIS v3
     def __init__(self, layer, label, folder, exports, outFile, prg):
         self.layer = layer
         self.label = label
@@ -338,7 +334,7 @@ class kmlprocess(object):
                                          "png", QSize(30, 30))
                         styles.append([name, {"iconfile": imgname}])
                     elif lyrGeo == 1: ## Line case
-                        color = argb2abgr("%x" % symb.color().rgba())
+                        color = "%x" % symb.color().rgba()
                         width = symb.width()
                         styles.append([name, {"color": color, "width": width}])
                     elif lyrGeo == 2: ## Polygon case
