@@ -23,6 +23,9 @@ from builtins import str, range, object
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
+schemaTypes = ["string", "int", "uint", "short", "ushort", "float", "double",
+               "bool"]
+
 class kml(object):
     """ creates a kml doc from geographic content """
 
