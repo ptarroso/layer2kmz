@@ -405,7 +405,7 @@ class kmlprocess(object):
             if self.styleField is not None:
                 style = self.featStyles[i]
             fields = {}
-            fields[self.layer.name()] = zip(self.exports, self.data[i])
+            fields[self.layer.name()] = list(zip(self.exports, self.data[i]))
             ## TODO:Maybe add a warning input data must be single part
             Kml.addPlacemark(folder, name, style, coords, fields)
             self.counter += 1
