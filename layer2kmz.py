@@ -190,9 +190,13 @@ class layer2kmz(object):
         # remove the toolbar
         del self.toolbar
 
+    def errorMsg(self, text):
+        self.iface.messageBar().pushMessage("Error", text, level=Qgis.Critical)
+    
+    def warnMsg(self, text):
+        self.iface.messageBar().pushMessage("Warning", text, level=Qgis.Warning)
+    
     def run(self):
-        """Run method that performs all the real work"""
-
         # Update combos
         layerTree = QgsProject.instance().layerTreeRoot().findLayers()
         layers = [lyr.layer() for lyr in layerTree]
@@ -218,9 +222,9 @@ class layer2kmz(object):
             layer = canvas.layer(shownLayers.index(layerName))
 
             if layerName not in shownLayers:
-                self.dlg.warnMsg("Species table not found or active!", layerName)
+                self.warnMsg("Species table not found or active!", layerName)
             elif outFile == "":
-                self.dlg.errorMsg("Choose an output kmz file!", "")
+                self.errorMsg("Choose an output kmz file!")
 
             elif exportFld== []:
                 self.dlg.errorMsg("At least one field to export must be selected.", "")
@@ -245,7 +249,7 @@ def argb2abgr(col):
 
 
 class kmlprocess(object):
-    def __init__(self, layer, label, folder, exports, outFile, prg):
+    def __init__(self, layer, label, folder, exports, outFile, progress):
         self.layer = layer
         self.label = label
         self.folder = folder
@@ -253,7 +257,7 @@ class kmlprocess(object):
         self.styleField = None
         self.outFile = outFile
         self.tmpDir = tempfile.gettempdir()
-        self.progress = prg
+        self.progress = progress
         self.totalCounter = 1
         self.counter = 0
 
@@ -365,7 +369,7 @@ class kmlprocess(object):
                                          "outline": outline,
                                          "border": border}])
         else:
-            self.error.emit("Symbology must be single or categorized.")
+            self.errorEmit("Symbology must be single or categorized.")
             self.finished.emit(False)
 
         self.styles = styles
