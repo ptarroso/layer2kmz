@@ -26,6 +26,19 @@ from xml.dom import minidom
 schemaTypes = ["string", "int", "uint", "short", "ushort", "float", "double",
                "bool"]
 
+def unescape_text(text):
+    # Q&D solution for unescaping text on cdata. It does duplicate the job
+    # because ElementTree is escaping chars first. Maybe in the future override
+    # _serialize_xml in Element Tree to avoid duplication
+    if b"&amp;" in text:
+        text = text.replace(b"&amp;", b"&")
+    if b"&lt;" in text:
+        text = text.replace(b"&lt;", b"<")
+    if b"&gt;" in text:
+        text = text.replace(b"&gt;", b">")
+    return(text)
+
+    
 class kml(object):
     """ creates a kml doc from geographic content """
 
@@ -132,7 +145,7 @@ class kml(object):
         ##         is "None", tham the default table style is applied
         if cdata is None:
             # The default style
-            cdata = "<br>$[name]<br/>\n"
+            cdata = "<br><font color=\"#CC0000\" size=\"+3\">$[name]</font><br/>\n"
             cdata += "<table border=\"0\">\n"
             cdata += "    <tbody>\n"
             cdata += "        <tr style=\"color:#FFFFFF;background:#778899\">\n"
@@ -162,10 +175,10 @@ class kml(object):
         else:
             pos = len(self.cdata)
             self.cdata.append(cdata)
-    
+
         ballon = ET.Element("BalloonStyle")
         txt = ET.Element("text")
-        txt.text = "REPLACE_CDATA_%s" % (pos)
+        txt.text = cdata
         ballon.append(txt)
         return(ballon)
                 
@@ -381,6 +394,6 @@ class kml(object):
         for folder in self.folders:
             doc.append(folder)
         root.append(doc)
-        kmlALL = ET.tostring(root, encoding=self.encoding)
+        kmlALL = unescape_text(ET.tostring(root, encoding=self.encoding))
         kmlstr = minidom.parseString(kmlALL)
         return(kmlstr.toprettyxml(indent="    ", encoding=self.encoding))
