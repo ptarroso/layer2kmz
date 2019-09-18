@@ -1,6 +1,6 @@
 # Layer2KMZ
 
-Layer2KMZ is a plug-in for QGIS (version >= 2.0; http://www.qgis.org). It allows
+Layer2KMZ is a plug-in for QGIS (version >= 3.0; http://www.qgis.org). It allows
 the conversion between spatial layers (points, lines or polygons) to a KMZ file.
 It exports the symbology as shown in QGIS but, at the moment, it only works with
 simple or categorized styles.
