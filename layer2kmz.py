@@ -143,12 +143,6 @@ class layer2kmz(object):
         # remove the toolbar
         del self.toolbar
 
-    def errorMsg(self, text):
-        self.iface.messageBar().pushMessage("Error", text, level=Qgis.Critical)
-    
-    def warnMsg(self, text):
-        self.iface.messageBar().pushMessage("Warning", text, level=Qgis.Warning)
-    
     def run(self):
         # Update combos
         layerTree = QgsProject.instance().layerTreeRoot().findLayers()
@@ -175,17 +169,18 @@ class layer2kmz(object):
             layer = canvas.layer(shownLayers.index(layerName))
 
             if layerName not in shownLayers:
-                self.warnMsg("Species table not found or active!", layerName)
+                self.dlg.emitMsg("Species table not found or active!", layerName, 
+                             Qgis.Warning)
             elif outFile == "":
-                self.errorMsg("Choose an output kmz file!")
+                self.dlg.emitMsg("Choose an output kmz file!", "", Qgis.Warning)
 
             elif exportFld== []:
-                self.dlg.errorMsg("At least one field to export must be selected.", "")
+                self.dlg.emitMsg("At least one field to export must be selected.", "", Qgis.Warning)
             else:
                 self.dlg.setProgressBar("Processing", "", 100)
 
                 kmlproc = kmlprocess(layer, labelFld, folderFld, exportFld,
-                                  outFile, self.dlg.ProgressBar)
+                                  outFile, self.dlg)
                 kmlproc.process()
 
 def conv2str(x):
@@ -202,7 +197,7 @@ def argb2abgr(col):
 
 
 class kmlprocess(object):
-    def __init__(self, layer, label, folder, exports, outFile, progress):
+    def __init__(self, layer, label, folder, exports, outFile, dialog):
         self.layer = layer
         self.label = label
         self.folder = folder
@@ -210,7 +205,8 @@ class kmlprocess(object):
         self.styleField = None
         self.outFile = outFile
         self.tmpDir = tempfile.gettempdir()
-        self.progress = progress
+        self.progress = dialog.ProgressBar
+        self.emitMsg = dialog.emitMsg
         self.totalCounter = 1
         self.counter = 0
 
@@ -310,7 +306,7 @@ class kmlprocess(object):
                                  QSize(30, 30))
                 styles.append(["style", {"iconfile": imgname}])
             elif lyrGeo == 1: ## Line case
-                color = "%x" % symb.color().rgba()
+                color = argb2abgr("%x" % symb.color().rgba())
                 width = symb.width()
                 styles.append(["style", {"color": color, "width": width}])
             elif lyrGeo == 2: ## Polygon case
@@ -322,8 +318,8 @@ class kmlprocess(object):
                                          "outline": outline,
                                          "border": border}])
         else:
-            self.errorEmit("Symbology must be single or categorized.")
-            self.finished.emit(False)
+            raise Exception("Wrong symbology: must be single or categorized")
+            #self.finished.emit(False)
 
         self.styles = styles
 
@@ -343,43 +339,50 @@ class kmlprocess(object):
         os.remove(os.path.join(self.tmpDir, "doc.kml"))
 
     def process(self):
-        self.setStyles()
-        self.processLayer()
-        Kml = kml(self.layer.name())
-        types = ["string" for x in self.exports]
-        Kml.addSchema(self.layer.name(), self.exports, types)
+        try:
+            self.setStyles()
+            
+            self.processLayer()
+            Kml = kml(self.layer.name())
+            types = ["string" for x in self.exports]
+            Kml.addSchema(self.layer.name(), self.exports, types)
 
-        for item in self.styles:
-            styId, kwargs = item
-            Kml.addStyle(styId, **kwargs)
+            for item in self.styles:
+                styId, kwargs = item
+                Kml.addStyle(styId, **kwargs)
 
-        style = self.styles[0][0]
-        for i in range(len(self.data)):
+            style = self.styles[0][0]
+            for i in range(len(self.data)):
+                self.updateProgress()
+                folder = self.featFolder[i]
+                name = self.labels[i]
+                coords = self.coords[i]
+                if self.styleField is not None:
+                    style = self.featStyles[i]
+                fields = {}
+                fields[self.layer.name()] = list(zip(self.exports, self.data[i]))
+                ## TODO:Maybe add a warning input data must be single part
+                Kml.addPlacemark(folder, name, style, coords, fields)
+                self.counter += 1
+
+            tmpKml = os.path.join(self.tmpDir, "doc.kml")
+            fstream = open(tmpKml, "wb")
+            kmlstr = Kml.generatekml()
+            fstream.write(kmlstr)
+            fstream.close()
+
+            z = zipfile.ZipFile(self.outFile, "w")
+            z.write(tmpKml, arcname="doc.kml")
+            for styDict in [x[1] for x in self.styles]:
+                if "iconfile" in styDict.keys():
+                    filename = os.path.join(self.tmpDir, styDict["iconfile"])
+                    z.write(filename, arcname=os.path.basename(filename))
+            z.close()
+
+            self.cleanup()
             self.updateProgress()
-            folder = self.featFolder[i]
-            name = self.labels[i]
-            coords = self.coords[i]
-            if self.styleField is not None:
-                style = self.featStyles[i]
-            fields = {}
-            fields[self.layer.name()] = list(zip(self.exports, self.data[i]))
-            ## TODO:Maybe add a warning input data must be single part
-            Kml.addPlacemark(folder, name, style, coords, fields)
-            self.counter += 1
-
-        tmpKml = os.path.join(self.tmpDir, "doc.kml")
-        fstream = open(tmpKml, "wb")
-        kmlstr = Kml.generatekml()
-        fstream.write(kmlstr)
-        fstream.close()
-
-        z = zipfile.ZipFile(self.outFile, "w")
-        z.write(tmpKml, arcname="doc.kml")
-        for styDict in [x[1] for x in self.styles]:
-            if "iconfile" in styDict.keys():
-                filename = os.path.join(self.tmpDir, styDict["iconfile"])
-                z.write(filename, arcname=os.path.basename(filename))
-        z.close()
-
-        self.cleanup()
-        self.updateProgress()
+            
+        except Exception as e:
+            self.counter = self.totalCounter
+            self.updateProgress() 
+            self.emitMsg("Error", e.args[0], Qgis.Critical)
