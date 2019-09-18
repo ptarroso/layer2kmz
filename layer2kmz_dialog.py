@@ -113,9 +113,8 @@ class layer2kmzDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def warnMsg(self, main, text):
         self.warn = self.iface.messageBar().createMessage(main, text)
-        self.iface.messageBar().pushWidget(self.warn,
-                                           self.iface.messageBar().WARNING)
+        self.iface.messageBar().pushWidget(self.warn, Qgis.Warning)
+        
     def errorMsg(self, main, text):
         self.warn = self.iface.messageBar().createMessage(main, text)
-        self.iface.messageBar().pushWidget(self.warn,
-                                           self.iface.messageBar().CRITICAL)
+        self.iface.messageBar().pushWidget(self.warn, Qgis.Critical)
