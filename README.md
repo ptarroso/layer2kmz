@@ -15,7 +15,7 @@ advanced interaction with Google Earth (check GEarthView, for instance).
 The Layer2KMZ plug-in allows to:
 
 * Export data to KMZ
-* Use the QGIS symbology
+* Use the QGIS symbology (single or categorized)
 * Choose an attribute field to group data in folders
 * Choose an attribute field to display labels associated with each feature.
 
