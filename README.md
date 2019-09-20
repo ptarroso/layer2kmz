@@ -29,6 +29,6 @@ QGIS, search layer2kmz and install.
 ### Manual install
 
 Download the files to your computer into a folder layer2kmz. Copy this folder to
-the plug-in folder of your QGIS instalation. Usually is found in the
-PATH_TO_YOUR_USER/.qgis2/python/plugins/ ([check the QGIS manuals](http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html) for more details).
+the plug-in folder of your QGIS user profile. You can find your user profile 
+folder in QGIS menu "Settings -> User Profiles" ([check also QGIS manuals](https://docs.qgis.org/testing/en/docs/user_manual/plugins/plugins.html#core-and-external-plugins) for more details).
 In QGIS, activate the layer2kmz in the plug-in manager.
