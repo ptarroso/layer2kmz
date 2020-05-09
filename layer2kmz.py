@@ -162,6 +162,8 @@ class layer2kmz(object):
             folderFld = self.dlg.getFolder()
             exportFld = self.dlg.getExports()
             outFile = self.dlg.getOutFile()
+            showLbl = self.dlg.getShowLabel()
+
 
             # Get the layer object from active layers
             canvas = self.iface.mapCanvas()
@@ -169,7 +171,7 @@ class layer2kmz(object):
             layer = canvas.layer(shownLayers.index(layerName))
 
             if layerName not in shownLayers:
-                self.dlg.emitMsg("Species table not found or active!", layerName, 
+                self.dlg.emitMsg("Species table not found or active!", layerName,
                              Qgis.Warning)
             elif outFile == "":
                 self.dlg.emitMsg("Choose an output kmz file!", "", Qgis.Warning)
@@ -180,7 +182,7 @@ class layer2kmz(object):
                 self.dlg.setProgressBar("Processing", "", 100)
 
                 kmlproc = kmlprocess(layer, labelFld, folderFld, exportFld,
-                                  outFile, self.dlg)
+                                     showLbl, outFile, self.dlg)
                 kmlproc.process()
 
 def conv2str(x):
@@ -197,9 +199,10 @@ def argb2abgr(col):
 
 
 class kmlprocess(object):
-    def __init__(self, layer, label, folder, exports, outFile, dialog):
+    def __init__(self, layer, label, folder, exports, showLbl, outFile, dialog):
         self.layer = layer
         self.label = label
+        self.showLbl = showLbl
         self.folder = folder
         self.exports = exports
         self.styleField = None
@@ -341,7 +344,7 @@ class kmlprocess(object):
     def process(self):
         try:
             self.setStyles()
-            
+
             self.processLayer()
             Kml = kml(self.layer.name())
             types = ["string" for x in self.exports]
@@ -349,6 +352,7 @@ class kmlprocess(object):
 
             for item in self.styles:
                 styId, kwargs = item
+                kwargs["label"] = float(self.showLbl)
                 Kml.addStyle(styId, **kwargs)
 
             style = self.styles[0][0]
@@ -381,8 +385,8 @@ class kmlprocess(object):
 
             self.cleanup()
             self.updateProgress()
-            
+
         except Exception as e:
             self.counter = self.totalCounter
-            self.updateProgress() 
+            self.updateProgress()
             self.emitMsg("Error", e.args[0], Qgis.Critical)

@@ -38,7 +38,7 @@ def unescape_text(text):
         text = text.replace(b"&gt;", b">")
     return(text)
 
-    
+
 class kml(object):
     """ creates a kml doc from geographic content """
 
@@ -86,6 +86,9 @@ class kml(object):
         ## icon - needs "iconfile = str"
         ## line - needs either "color = HEX" or "width = int"
         ## polygon - needs "fill = HEX", "outline = Bool/int" and "border = HEX"
+        ##
+        ## if "label = float" (scale size of the lable) is found, add a label
+        ## style independently other styles presence.
 
         if idStyle in self.listStyles():
             raise Exception("Styles must be unique. " \
@@ -98,6 +101,10 @@ class kml(object):
 
         style = ET.Element("Style")
         style.set("id", idStyle)
+
+        # Start by checking label style presence
+        if "label" in kwargs.keys():
+            style.append(self._addLabelSty(kwargs["label"]))
 
         linetest = ["color", "width"]
         polytest = ["fill", "outline", "border"]
@@ -128,7 +135,7 @@ class kml(object):
             style.append(poly)
             if line:
                 style.append(line)
-        
+
         # Add a Ballon Style to display field data in GEarth
         cdata = None
         if "cdata" in kwargs.keys():
@@ -151,7 +158,7 @@ class kml(object):
             cdata += "        <tr style=\"color:#FFFFFF;background:#778899\">\n"
             cdata += "            <th>Field name</th><th>Value</th>\n"
             cdata += "        </tr>\n"
-            
+
             i = 1
             for schema in self.schemas:
                 schemaName = schema.get("name")
@@ -164,10 +171,10 @@ class kml(object):
                              (field, schemaName, field)
                     cdata += "        </tr>\n"
                     i += 1
-                
+
                 cdata += "    </tbody>\n"
                 cdata += "</table>\n"
-                
+
         # Not a beautiful solution to add cdata, but for now it will work...
         cdata = "<![CDATA[%s]]>" % (cdata)
         if cdata in self.cdata:
@@ -181,7 +188,7 @@ class kml(object):
         txt.text = cdata
         ballon.append(txt)
         return(ballon)
-                
+
     def _addIconSty(self, iconfile):
         istyle = ET.Element("IconStyle")
         icon = ET.Element("Icon")
@@ -219,6 +226,13 @@ class kml(object):
             outlp.text = "0"
         poly.append(outlp)
         return(poly)
+
+    def _addLabelSty(self, scale):
+        lstyle = ET.Element("LabelStyle")
+        scl = ET.Element("scale")
+        scl.text = "%.2f" % float(scale)
+        lstyle.append(scl)
+        return(lstyle)
 
     def addFolder(self, foldername):
         foldername = str(foldername)

@@ -58,6 +58,9 @@ class layer2kmzDialog(QtWidgets.QDialog, FORM_CLASS):
     def getLabel(self):
         return(str(self.labelCombo.currentText()))
 
+    def getShowLabel(self):
+        return(bool(self.showLabel.isChecked()))
+
     def getFolder(self):
         return(str(self.folderCombo.currentText()))
 
@@ -116,4 +119,3 @@ class layer2kmzDialog(QtWidgets.QDialog, FORM_CLASS):
         # type is either Qgis.Warning or Qgis.Critical
         msg = self.iface.messageBar().createMessage(main, text)
         self.iface.messageBar().pushWidget(msg, type)
-    
