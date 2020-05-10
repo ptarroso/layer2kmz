@@ -22,21 +22,29 @@
 from builtins import str, range, object
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from xml.sax.saxutils import escape
 
 schemaTypes = ["string", "int", "uint", "short", "ushort", "float", "double",
                "bool"]
 
-def unescape_text(text):
-    # Q&D solution for unescaping text on cdata. It does duplicate the job
-    # because ElementTree is escaping chars first. Maybe in the future override
-    # _serialize_xml in Element Tree to avoid duplication
-    if b"&amp;" in text:
-        text = text.replace(b"&amp;", b"&")
-    if b"&lt;" in text:
-        text = text.replace(b"&lt;", b"<")
-    if b"&gt;" in text:
-        text = text.replace(b"&gt;", b">")
-    return(text)
+## Begin CDATA solution for xml.etree.ElementTree
+# (similarly to the comments tag in the original _serialize_xml)
+
+# Store the original _serialize_xml to reuse later
+ET._etree_serialize_xml = ET._serialize_xml
+
+# Add a special case for element with 'cdata' tage
+def _serialize_xml(write, elem, qnames, namespaces, short_empty_elements,
+                   **kwargs):
+    if elem.tag == 'cdata':
+        write("<![CDATA[<%s]]>" % (elem.text))
+        return()
+    return(ET._etree_serialize_xml(write, elem, qnames, namespaces,
+                                   short_empty_elements, **kwargs))
+
+# Replace _serialize_xml for CDATA handling
+ET._serialize_xml = ET._serialize['xml'] = _serialize_xml
+## End CDATA solution for xml.etree.ElementTree
 
 
 class kml(object):
@@ -173,10 +181,8 @@ class kml(object):
                     i += 1
 
                 cdata += "    </tbody>\n"
-                cdata += "</table>\n"
+                cdata += "</table>"
 
-        # Not a beautiful solution to add cdata, but for now it will work...
-        cdata = "<![CDATA[%s]]>" % (cdata)
         if cdata in self.cdata:
             pos = self.cdata.index(cdata)
         else:
@@ -185,7 +191,9 @@ class kml(object):
 
         ballon = ET.Element("BalloonStyle")
         txt = ET.Element("text")
-        txt.text = cdata
+        cdt = ET.Element("cdata")
+        cdt.text = cdata
+        txt.append(cdt)
         ballon.append(txt)
         return(ballon)
 
@@ -408,6 +416,6 @@ class kml(object):
         for folder in self.folders:
             doc.append(folder)
         root.append(doc)
-        kmlALL = unescape_text(ET.tostring(root, encoding=self.encoding))
+        kmlALL = ET.tostring(root, encoding=self.encoding)
         kmlstr = minidom.parseString(kmlALL)
         return(kmlstr.toprettyxml(indent="    ", encoding=self.encoding))
