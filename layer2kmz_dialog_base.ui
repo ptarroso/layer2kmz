@@ -205,11 +205,12 @@
  </widget>
  <tabstops>
   <tabstop>layerCombo</tabstop>
+  <tabstop>labelCombo</tabstop>
   <tabstop>folderCombo</tabstop>
   <tabstop>exportList</tabstop>
   <tabstop>outputButton</tabstop>
   <tabstop>outputLine</tabstop>
-  <tabstop>button_box</tabstop>
+  <tabstop>showLabel</tabstop>
  </tabstops>
  <resources/>
  <connections>
