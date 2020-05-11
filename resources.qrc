@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/plugins/layer2kmz" >
         <file>icon.png</file>
+        <file>icon_provider.png</file>
     </qresource>
 </RCC>
