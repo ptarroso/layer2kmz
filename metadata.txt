@@ -7,6 +7,7 @@ version=1.5.1
 author=Pedro Tarroso
 email=ptarroso@cibio.up.pt
 experimental=False
+hasProcessingProvider=yes
 deprecated=False
 tags=point, kmz
 homepage=https://github.com/ptarroso/layer2kmz
@@ -24,3 +25,4 @@ v1.5: Ported to QGIS 3.0
 v1.5.1: Removed experimental flag
 v1.5.2: Added no label option
         Escapes characters in tables associated with placemark
+v2.0.0: Major change: processing interface added.
