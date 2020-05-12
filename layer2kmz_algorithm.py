@@ -24,7 +24,7 @@
 """
 
 __author__ = 'Pedro Tarroso'
-__date__ = '2018-02-02'
+__date__ = '2020-05-12'
 __copyright__ = '(C) 2018 by Pedro Tarroso'
 __revision__ = '$Format:%H$'
 
