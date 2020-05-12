@@ -117,7 +117,7 @@ class layer2kmzAlgorithm(QgsProcessingAlgorithm):
         outFile = self.parameterAsFileOutput(parameters, self.OutputKMZ, context)
 
         # Make sure output file extension is KMZ
-        if outFile[:-3].lower() != ".kmz":
+        if outFile[-4:].lower() != ".kmz":
             outFile = outFile + ".kmz"
 
         def emitMsg(type, msg):
