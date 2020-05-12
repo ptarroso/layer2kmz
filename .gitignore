@@ -10,6 +10,7 @@ i18n/
 scripts/
 test/
 __pycache__/
+release
 
 # Additional files from plugin builder
 pb_tool.cfg
