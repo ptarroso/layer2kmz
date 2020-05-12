@@ -89,4 +89,4 @@ class layer2kmzProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return self.name("Converts a layer to kmz format with symbology")
+        return self.tr("Converts a layer to kmz format with symbology")
