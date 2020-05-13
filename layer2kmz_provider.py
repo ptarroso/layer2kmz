@@ -34,6 +34,7 @@ __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
 from PyQt5.QtGui import QIcon
 from .layer2kmz_algorithm import layer2kmzAlgorithm
+from .savestyle_algorithm import saveStyleAlgorithm
 from . import resources
 
 class layer2kmzProvider(QgsProcessingProvider):
@@ -56,6 +57,7 @@ class layer2kmzProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(layer2kmzAlgorithm())
+        self.addAlgorithm(saveStyleAlgorithm())
 
     def id(self):
         """
