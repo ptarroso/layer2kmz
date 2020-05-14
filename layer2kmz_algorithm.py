@@ -102,7 +102,7 @@ class layer2kmzAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFileDestination(
                 self.OutputKMZ,
                 self.tr('Output KMZ'),
-                fileFilter="kmz"
+                fileFilter="*.kmz"
             )
         )
 

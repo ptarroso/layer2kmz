@@ -37,7 +37,7 @@ ET._etree_serialize_xml = ET._serialize_xml
 def _serialize_xml(write, elem, qnames, namespaces, short_empty_elements,
                    **kwargs):
     if elem.tag == 'cdata':
-        write("<![CDATA[<%s]]>" % (elem.text))
+        write("<![CDATA[%s]]>" % (elem.text))
         return()
     return(ET._etree_serialize_xml(write, elem, qnames, namespaces,
                                    short_empty_elements, **kwargs))
