@@ -128,15 +128,15 @@ class kml(object):
             style.append(line)
         if any(i in kwargs.keys() for i in polytest):
             line = None
-            if all(x in polytest for x in kwargs.keys()):
+            if all(x in kwargs.keys() for x in polytest):
                 # Full case: polygon with fill, outline and border
                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
                 line = self._addLineSty(kwargs["border"],
                                         int(kwargs["outline"]))
-            elif all(x in polytest[:2] for x in kwargs.keys()):
+            elif all(x in kwargs.keys() for x in polytest[:2]):
                 # Simple case: polygon with fill and outline defined as boolean
                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
-            elif all(x in polytest[:1] for x in kwargs.keys()):
+            elif all(x in kwargs.keys() for x in polytest[:1]):
                 # Basic case: only fill color provided
                 poly = self._addPolySty(kwargs["fill"])
 
