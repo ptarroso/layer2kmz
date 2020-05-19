@@ -160,7 +160,7 @@ class kml(object):
         ##         is "None", tham the default table style is applied
         if cdata is None:
             # The default style
-            cdata = "<br><font color=\"#CC0000\" size=\"+3\">$[name]</font><br/>\n"
+            cdata = "<font color=\"#CC0000\" size=\"+3\">$[name]</font>\n"
             cdata += "<table border=\"0\">\n"
             cdata += "    <tbody>\n"
             cdata += "        <tr style=\"color:#FFFFFF;background:#778899\">\n"
