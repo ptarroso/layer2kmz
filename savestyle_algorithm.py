@@ -54,7 +54,7 @@ class saveStyleAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFileDestination(
                 self.outStyle,
                 self.tr('Output QML'),
-                fileFilter="qml"
+                fileFilter="*.qml"
             )
         )
 
