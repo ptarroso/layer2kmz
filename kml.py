@@ -37,7 +37,7 @@ ET._etree_serialize_xml = ET._serialize_xml
 def _serialize_xml(write, elem, qnames, namespaces, short_empty_elements,
                    **kwargs):
     if elem.tag == 'cdata':
-        write("<![CDATA[<%s]]>" % (elem.text))
+        write("<![CDATA[%s]]>" % (elem.text))
         return()
     return(ET._etree_serialize_xml(write, elem, qnames, namespaces,
                                    short_empty_elements, **kwargs))
@@ -160,7 +160,7 @@ class kml(object):
         ##         is "None", tham the default table style is applied
         if cdata is None:
             # The default style
-            cdata = "<br><font color=\"#CC0000\" size=\"+3\">$[name]</font><br/>\n"
+            cdata = "<font color=\"#CC0000\" size=\"+3\">$[name]</font>\n"
             cdata += "<table border=\"0\">\n"
             cdata += "    <tbody>\n"
             cdata += "        <tr style=\"color:#FFFFFF;background:#778899\">\n"
