@@ -132,7 +132,7 @@ class kml(object):
                 # Full case: polygon with fill, outline and border
                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
                 line = self._addLineSty(kwargs["border"],
-                                        int(kwargs["outline"]))
+                                        float(kwargs["outline"]))
             elif all(x in kwargs.keys() for x in polytest[:2]):
                 # Simple case: polygon with fill and outline defined as boolean
                 poly = self._addPolySty(kwargs["fill"], bool(kwargs["outline"]))
