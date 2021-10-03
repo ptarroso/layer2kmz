@@ -37,6 +37,7 @@ from .layer2kmz_dialog import layer2kmzDialog
 import os
 import tempfile
 import zipfile
+import random
 from .kml import kml
 
 class layer2kmz(object):
@@ -197,6 +198,11 @@ def argb2abgr(col):
     #KML format: AlphaBGR instead of AlphaRGB
     return(col[0:2] + col[6:8] + col[4:6] + col[2:4])
 
+def randomString(size=8):
+    # Returns a random ascii string of length 'size'
+    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    return "".join([random.choice(chars) for i in range(size)])
+
 
 class kmlprocess(object):
     def __init__(self, layer, label, folder, exports, showLbl, outFile, dialog):
@@ -285,7 +291,10 @@ class kmlprocess(object):
                 symb = cat.symbol()
                 if cat.renderState():
                     if lyrGeo == 0: ## Point case
-                        imgname = "color_%s.png" % name
+                        #imgname = "color_%s.png" % name
+                        # saves imgname with a random identifier (avoids
+                        # non-aceptable characters in file name)
+                        imgname = "color_%s.png" % randomString()
                         symb.exportImage(os.path.join(self.tmpDir, imgname),
                                          "png", QSize(30, 30))
                         styles.append([name, {"iconfile": imgname}])
