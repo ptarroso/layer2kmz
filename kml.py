@@ -93,7 +93,7 @@ class kml(object):
         ## an icon, line or polygon
         ## icon - needs "iconfile = str"
         ## line - needs either "color = HEX" or "width = int"
-        ## polygon - needs "fill = HEX", "outline = Bool/int" and "border = HEX"
+        ## polygon - needs "fill = HEX", "outline = Bool/float" and "border = HEX"
         ##
         ## if "label = float" (scale size of the lable) is found, add a label
         ## style independently other styles presence.
