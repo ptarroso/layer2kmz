@@ -30,4 +30,3 @@ v1.5.3: Corrected polygon exportation error
 v1.5.4: Accepts float width for lines and polygon outlines
         Symbol images with random ascii filenames
 v2.0.0: Major change: processing interface added.
-        corrected ballon style
