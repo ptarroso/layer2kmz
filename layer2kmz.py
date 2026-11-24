@@ -21,10 +21,10 @@
 """
 from builtins import str, zip, range, object
 
-from PyQt5.QtCore import QSettings, QCoreApplication, QTranslator, qVersion
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtWidgets import QAction
+from qgis.PyQt.QtCore import QSettings, QCoreApplication, QTranslator, qVersion
+from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtGui import QIcon, QColor
+from qgis.PyQt.QtWidgets import QAction
 
 from qgis.gui import QgsMapCanvas
 from qgis.core import *
@@ -155,7 +155,7 @@ class layer2kmz(object):
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
         # See if OK was pressed
         if result:
             layerName = self.dlg.getVectorLayer()

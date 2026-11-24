@@ -21,9 +21,9 @@
 """
 import os
 
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
+from qgis.PyQt import QtCore
 
 from qgis.core import QgsProject, Qgis
 
@@ -98,7 +98,7 @@ class layer2kmzDialog(QtWidgets.QDialog, FORM_CLASS):
     def setProgressBar(self, main, text, maxVal=100):
         self.widget = self.iface.messageBar().createMessage(main, text)
         self.prgBar = QtWidgets.QProgressBar()
-        self.prgBar.setAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.prgBar.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.prgBar.setValue(0)
         self.prgBar.setMaximum(maxVal)
         self.widget.layout().addWidget(self.prgBar)
